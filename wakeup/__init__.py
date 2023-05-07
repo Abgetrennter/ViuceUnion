@@ -5,18 +5,20 @@ from nonebot.plugin import on_command
 from .config import Config
 import os,time,base64
 
+from pathlib import Path
+from nonebot import require
 
-config = Config.parse_obj(get_driver().config)
+require("nonebot_plugin_localstore")
 
-fileRoot=config.fileroot+'check/'if config.fileroot else "/home/abg/nonebot/Alice/QQbotFiles/check/"
+import nonebot_plugin_localstore as store
 
-if not os.path.exists(fileRoot):
-	os.makedirs(fileRoot)
+fileRoot: Path = store.get_data_dir("wakeup")
+plugin_data_file: Path = store.get_data_file("wakeup", "filename")
     
 
 
 async def base64_path(path: str):
-    ff = "空"
+    ff = ""
     with open(path, "rb") as f:
         ff = base64.b64encode(f.read()).decode()
     return f"base64://{ff}"
@@ -24,7 +26,7 @@ async def base64_path(path: str):
 def get_checked(uid:str):
 	date=str(time.strftime("%Y-%m-%d--%H:%M", time.localtime()))
 	
-	upath = fileRoot + str(uid)+'.csv'
+	upath = store.get_data_file("wakeup", str(uid)+'.csv')
 	if not os.path.exists(upath):
 		with open(upath,'w',encoding='utf-8') as f :
 			f.write(date)
@@ -47,11 +49,11 @@ async def handle_check(ev: Event):
 		await check.send(f"签到成功，您是{th}点签到的")
 		
 		if th<8:
-			await check.send(MessageSegment.image(await base64_path(fileRoot+'100.jpg')))
+			await check.send(MessageSegment.image(await base64_path(str(store.get_data_file("wakeup", '100.jpg')))))
 		elif th<9:
-			await check.send(MessageSegment.image(await base64_path(fileRoot+'0.jpg')))
+			await check.send(MessageSegment.image(await base64_path(str(store.get_data_file("wakeup", '0.jpg')))))
 		else :
-			await check.send(MessageSegment.image(await base64_path(fileRoot+'1.jpg')))
+			await check.send(MessageSegment.image(await base64_path(str(store.get_data_file("wakeup", '1.jpg')))))
 	else:
 		await check.send("签过了")
     		
@@ -62,17 +64,17 @@ async def handle_gn(ev: Event):
 	await check.send(f"都{th}点了，还不快睡🕛🕛🕛")
 		
 	if 18<th<22:
-		await gn.send(MessageSegment.image(await base64_path(fileRoot+'100.jpg')))
+		await gn.send(MessageSegment.image(await base64_path(str(store.get_data_file("wakeup", '100.jpg')))))
 	elif 22<th<23:
 		await gn.send("缺张60分捏")
 	else :
-		await gn.send(MessageSegment.image(await base64_path(fileRoot+'0.jpg')))
+		await gn.send(MessageSegment.image(await base64_path(str(store.get_data_file("wakeup", '0.jpg')))))
 
 checklist = on_command("签到历史")	
 @checklist.handle()
 async def handle_checklist(ev: Event):
 	uid=ev.get_user_id()
-	upath = fileRoot + str(uid)+'.csv'
+	upath = store.get_data_file("wakeup", str(uid)+'.csv')
 	if not os.path.exists(upath):
 		await checklist.send("无记录") 
 	with open(upath,'r',encoding='utf-8') as f:

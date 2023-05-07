@@ -1,6 +1,5 @@
 from nonebot import get_driver
 import re
-import os
 import base64
 from json import load, dump
 from nonebot.permission import SUPERUSER
@@ -12,62 +11,61 @@ from nonebot.adapters.onebot.v11 import Bot, Event, Message, MessageSegment, Gro
 from nonebot.plugin import on_message, on_command
 from nonebot.typing import T_State
 
+from pathlib import Path
+from nonebot import require
 
-async def base64_path(path: str):
+require("nonebot_plugin_localstore")
+
+import nonebot_plugin_localstore as store
+
+async def base64_path(path: str|Path):
     ff = "空"
     with open(path, "rb") as f:
         ff = base64.b64encode(f.read()).decode()
     return f"base64://{ff}"
 
 
-def get_words():
-    try:
-        with open(path+"words.txt", encoding='utf-8') as f:
-            words = [_.strip() for _ in f.read().split() if _.strip()]
-    except:
-        with open(path+"words.txt", 'w', encoding='utf-8') as f:
-            f.write("丁真")
-            words = {"丁真"}
-    return set(words)
+file_root: Path = store.get_data_dir("mingan")
+config_root:Path=store.get_config_dir("mingan")
 
+#敏感词
+if (ww:=file_root/"words.txt").exists():
+    with open(ww, encoding='utf-8') as f:
+        words = set(_.strip() for _ in f.read().split() if _.strip())
+else:
+    with open(ww, 'w', encoding='utf-8') as f:
+        f.write("丁真")
+    words={"丁真"}
 
-def get_config():
-    try:
-        with open(path+"config.json", encoding='utf-8') as f:
-            config: dict[str, float | str] = load(f)
-    except:
-        with open(path+"config.json", 'w', encoding='utf-8') as f:
-            config: dict[str, float | str] = {
+#得分
+if (dd:=file_root/"score.json").exists():
+    with open(dd, encoding='utf-8') as f:
+        scores: dict[str, float] = load(f)
+else:
+    with open(dd, 'w', encoding='utf-8') as f:
+        scores: dict[str, float] = {"514": 100}
+        dump(scores, f)
+
+#配置
+if (cc:=config_root/"config.json").exists():
+    with open(cc, encoding='utf-8') as f:
+        myconfig: dict[str, float | str] = load(f)
+else:
+    with open(cc, 'w', encoding='utf-8') as f:
+        myconfig: dict[str, float | str] = {
                 "delay": 0.5,
                 "powerful": 2,
                 "tip": "请谨言慎行"
             }
-            dump(config, f)
-    return config
+        dump(myconfig, f)
 
 
-def get_scores():
-    try:
-        with open(path+"score.json", encoding='utf-8') as f:
-            config: dict[str, int] = load(f)
-    except:
-        with open(path+"score.json", 'w', encoding='utf-8') as f:
-            config = {"514": 100}
-            dump(config, f)
-    return config
 
 
-global_config = get_driver().config
-path = Config.parse_obj(global_config).fileroot+"敏感词/"
-if not os.path.exists(path):
-    os.makedirs(path)
-words = get_words()
-myconfig = get_config()
-scores = get_scores()
 
 
 async def write_score():
-    with open(path+"score.json", "w", encoding="utf-8") as f:
+    with open(dd, "w", encoding="utf-8") as f:
         dump(scores, f)
 
 sa = on_command("信誉分", permission=SUPERUSER)
@@ -81,8 +79,6 @@ async def sa_handle():
 
 
 ad = on_command("addword", block=True)
-
-
 @ad.handle()
 async def addword_handle(keys: Message = CommandArg()):
     global words
@@ -90,7 +86,7 @@ async def addword_handle(keys: Message = CommandArg()):
     new_words = set([i for i in new_words if i])
     words.update(new_words)
 
-    with open(path+"words.txt", "a", encoding="utf-8") as f:
+    with open(ww, "a", encoding="utf-8") as f:
         for i in new_words:
             f.write("\n"+i)
 
@@ -114,9 +110,6 @@ def isforbiden() -> Rule:
     return Rule(isforbiden_)
 
 
-fd = on_message(rule=isforbiden(), priority=999)
-
-
 def check(msg: str) -> list[str]:
     l = []
     for word in words:
@@ -132,7 +125,7 @@ def check(msg: str) -> list[str]:
 
     return l
 
-
+fd = on_message(rule=isforbiden(), priority=999)
 @fd.handle()
 async def getwords(bot: Bot, event: GroupMessageEvent, state: T_State):
     msg = event.get_plaintext()
@@ -155,7 +148,7 @@ async def getwords(bot: Bot, event: GroupMessageEvent, state: T_State):
     tip = Message([MessageSegment.reply(mid),
                    f"关键词: {','.join(words)}\n",
                    f"{name}仅剩{scores[id]}分",    # type: ignore
-                   MessageSegment.image(await base64_path(path+'dont_say.jpg'))])
+                    MessageSegment.image(await base64_path(file_root.joinpath('dont_say.jpg')))])
     # print(tip)
     await write_score()
     if myconfig["powerful"] == 2:

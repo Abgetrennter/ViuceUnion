@@ -4,13 +4,11 @@ from nonebot.permission import SUPERUSER
 from nonebot.adapters.onebot.v11 import Bot, Message, GroupMessageEvent
 from nonebot.params import CommandArg
 from nonebot.plugin import on_command
-from .config import Config
 from urllib import parse
 from os import popen
 from asyncio import sleep
 from .spwarm import bquery, wquery
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
+
 
 
 bd = on_command("百度")
@@ -98,22 +96,6 @@ async def handle_g(message: Message = CommandArg()):
     m = message.extract_plain_text()
     m = "www.google.com/search?q="+parse.quote(m)
     await g.send(m)
-
-i_love_you = on_command("我喜欢你")
-@i_love_you.handle()
-async def handle_i_love_you(message: Message = CommandArg()):
-    await i_love_you.send("谢谢你的喜欢！但你的喜欢，应该给更合适的人。")
-
-water_face = on_command("你就挺合适的")
-@water_face.handle()
-async def handle_water_face(message: Message = CommandArg()):
-    await water_face.send("差不多得了啊😅😅")
-
-pking = on_command("我想去北大")
-@pking.handle()
-async def handle_pking(message: Message = CommandArg()):
-    await pking.send("北大一直是我的梦想，在波光潋滟的未名湖畔，我期待与你的携手。咱们一起努力")
-
 
 bk = on_command("百科")
 

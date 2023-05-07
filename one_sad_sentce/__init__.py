@@ -7,16 +7,17 @@ from .config import Config
 import os
 import random
 
+from pathlib import Path
+from nonebot import require
 
-config = Config.parse_obj(get_driver().config)
+require("nonebot_plugin_localstore")
 
-fileRoot = config.fileroot + \
-    'sad_sentence/'if config.fileroot else "./QQbotFiles/sad_sentence/"
+import nonebot_plugin_localstore as store
 
-if not os.path.exists(fileRoot):
-    os.makedirs(fileRoot)
+fileRoot: Path = store.get_cache_dir("sad_sentence")
 
-sentences_file = fileRoot+"scentence.txt"
+
+sentences_file = Path(fileRoot,"scentence.txt") 
 
 try:
     with open(sentences_file, encoding="utf-8") as f:
@@ -87,7 +88,7 @@ async def handle_list_jz():
                   s in enumerate(sentences)])
     await list_sentences.finish(l)
 
-love_file = fileRoot+"love.txt"
+love_file = Path(fileRoot,"love.txt")
 try:
     with open(love_file, encoding="utf-8") as f:
         love = f.read().split('\n')
@@ -158,7 +159,7 @@ async def handle_list_love():
     await list_love.finish(l)
 
 
-neuro_file = fileRoot+"neuro.txt"
+neuro_file = Path(fileRoot,"neuro.txt")
 try:
     with open(neuro_file, encoding="utf-8") as f:
         neuro = f.read().split('\n')
